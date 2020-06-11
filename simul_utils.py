@@ -55,6 +55,19 @@ def allan_deviation(p_X, kp, eta0, T_c, tau):
     return sigma
 
 
+def sampled_lineshape(lineshape_func,
+                      delta,
+                      tau_pi=6e-3,
+                      state_prep=False,
+                      samples_per_point=100):
+    # quantum jump p from theory
+    jump_probabilities = lineshape_func(delta, tau_pi, state_prep)
+    # draws from binomial
+    measured_results = binom.rvs(n=samples_per_point, p=jump_probabilities)
+    sample_shape = measured_results / samples_per_point
+    return sample_shape
+
+
 def sampling_cycle(f0,
                    T_s,
                    n_m,
