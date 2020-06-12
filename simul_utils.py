@@ -3,7 +3,7 @@ from scipy.signal import peak_widths
 from scipy.stats import binom
 
 
-def lineshape(delta, t, state_prep=False):
+def lineshape(delta, t, state_prep=False, center=0.):
     """Calculate theoretical lineshape from ideal Rabi flopping.
 
     Parameters
@@ -19,7 +19,8 @@ def lineshape(delta, t, state_prep=False):
     -------
     Lineshape array as probabilities for state change as a function
     of detuning"""
-    sinc_arg = (0.5 * np.sqrt(np.pi ** 2 + np.square(delta * (2 * np.pi))
+    sinc_arg = (0.5 * np.sqrt(np.pi ** 2
+                              + np.square((delta-center) * (2 * np.pi))
                 * np.square(t)))
     out = (np.pi/2.)**2 * np.square(np.divide(np.sin(sinc_arg), sinc_arg))
     if not state_prep:
