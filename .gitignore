@@ -1,3 +1,6 @@
 .vscode/*
 *.pdf
 *.npz
+data/*
+colorednoise/*
+__pycache__/*

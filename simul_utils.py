@@ -35,14 +35,14 @@ def FWHM(lineshape, delta):
     return out
 
 
-def k_p(lineshape_func, delta, t, n=1000, state_prep=False):
+def k_p(l_s, delta, t, n=1000, state_prep=False):
     """"Calculate k_p for optimal gain."""
-    fwhm = FWHM(lineshape_func(delta, t, state_prep), delta)
+    fwhm = FWHM(l_s, delta)
     d_R = np.linspace(start=delta[0], stop=delta[-1] - fwhm, num=n)
     d_B = d_R + fwhm
     d_C = d_R + fwhm / 2.
-    p_R = lineshape_func(d_R, t, state_prep)
-    p_B = lineshape_func(d_B, t, state_prep)
+    p_R = lineshape(d_R, t, state_prep)
+    p_B = lineshape(d_B, t, state_prep)
     k = p_B - p_R
     d_k = np.diff(k) / (d_C[1] - d_C[0])
     origin = d_k[np.argmin(np.abs(d_C))]
