@@ -14,7 +14,9 @@ def lineshape(delta, t, state_prep=False, center=0.):
         Pulse length(s)
     state_prep : bool, optional
         Flag for whether the ions have been state-prepped, yielding
-        a different resulting max probability.
+        a different resulting max probability. Default: False
+    center : scalar, optional
+        Offset of the central wavelength. Default: 0
     Returns
     -------
     Lineshape array as probabilities for state change as a function
@@ -35,14 +37,14 @@ def FWHM(lineshape, delta):
     return out
 
 
-def k_p(l_s, delta, t, n=1000, state_prep=False):
+def k_p(delta, t, n=1000, state_prep=False, center=0.):
     """"Calculate k_p for optimal gain."""
-    fwhm = FWHM(l_s, delta)
+    fwhm = FWHM(lineshape(delta, t, state_prep, center), delta)
     d_R = np.linspace(start=delta[0], stop=delta[-1] - fwhm, num=n)
     d_B = d_R + fwhm
     d_C = d_R + fwhm / 2.
-    p_R = lineshape(d_R, t, state_prep)
-    p_B = lineshape(d_B, t, state_prep)
+    p_R = lineshape(d_R, t, state_prep, center)
+    p_B = lineshape(d_B, t, state_prep, center)
     k = p_B - p_R
     d_k = np.diff(k) / (d_C[1] - d_C[0])
     origin = d_k[np.argmin(np.abs(d_C))]
@@ -81,11 +83,11 @@ def sampling_cycle(f0,
     Parameters
     ----------
     f0 : scalar
-        Initial detuning of center
+        Initial laser detuning
     T_s : scalar
         Total sampling time (single sample time * samples)
     n_m : scalar
-        Number of samples to take
+        Number of samples
     theoretical_delta: scalar
         Theoretical detuning of HWHM
     tau_pi : optional
