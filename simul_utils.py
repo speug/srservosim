@@ -82,13 +82,13 @@ def sampling_cycle(f0,
     drift.
     Parameters
     ----------
-    f0 : scalar
+    f0 : scalar or np.array
         Initial laser detuning
     T_s : scalar
         Total sampling time (single sample time * samples)
     n_m : scalar
         Number of samples
-    theoretical_delta: scalar
+    theoretical_delta: scalar or np.array
         Theoretical detuning of HWHM
     tau_pi : optional
         Pulse length in seconds
@@ -97,19 +97,24 @@ def sampling_cycle(f0,
     state_prep : bool
         State preparation flag
     """
+    assert(f0.shape == theoretical_delta.shape
+           or theoretical_delta.shape == (1,)), ("Theoretical delta (HWHM) "
+                                                 "must either have the same "
+                                                 "shape than f0 or be a "
+                                                 "scalar!")
     time_step = T_s / n_m
     if laser_drift == 0.:
-        detunings = np.ones(n_m) * f0 + theoretical_delta
+        detunings = np.multiply(np.ones(n_m), f0) + theoretical_delta
     else:
-        detunings = np.arange(start=f0,
-                              stop=f0 + n_m * laser_drift * time_step,
-                              step=laser_drift * time_step)
+        detunings = np.linspace(start=f0 + n_m,
+                                stop=f0 + (n_m * laser_drift * time_step),
+                                num=n_m)
         detunings += theoretical_delta
     # quantum jump p from theory
     jump_probabilities = lineshape(detunings, tau_pi, state_prep)
     # draws from binomial
     measured_results = binom.rvs(n=1, p=jump_probabilities)
-    p_X = np.sum(measured_results) / n_m
+    p_X = np.sum(measured_results, axis=0) / n_m
     center_f = detunings[-1] - theoretical_delta
-    total_drift = n_m * laser_drift * time_step
+    total_drift = np.ones(f0.shape) * n_m * laser_drift * time_step
     return p_X, center_f, total_drift
