@@ -97,16 +97,11 @@ def sampling_cycle(f0,
     state_prep : bool
         State preparation flag
     """
-    assert(f0.shape == theoretical_delta.shape
-           or theoretical_delta.shape == (1,)), ("Theoretical delta (HWHM) "
-                                                 "must either have the same "
-                                                 "shape than f0 or be a "
-                                                 "scalar!")
     time_step = T_s / n_m
     if laser_drift == 0.:
         detunings = np.multiply(np.ones(n_m), f0) + theoretical_delta
     else:
-        detunings = np.linspace(start=f0 + n_m,
+        detunings = np.linspace(start=f0 + laser_drift * time_step,
                                 stop=f0 + (n_m * laser_drift * time_step),
                                 num=n_m)
         detunings += theoretical_delta
@@ -116,5 +111,5 @@ def sampling_cycle(f0,
     measured_results = binom.rvs(n=1, p=jump_probabilities)
     p_X = np.sum(measured_results, axis=0) / n_m
     center_f = detunings[-1] - theoretical_delta
-    total_drift = np.ones(f0.shape) * n_m * laser_drift * time_step
+    total_drift = f0 + n_m * laser_drift * time_step
     return p_X, center_f, total_drift
