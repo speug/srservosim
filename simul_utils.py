@@ -72,7 +72,7 @@ def sampled_lineshape(lineshape_func,
 
 
 def sampling_cycle(f0,
-                   T_s,
+                   T_c,
                    n_m,
                    theoretical_delta,
                    tau_pi=6e-3,
@@ -97,7 +97,7 @@ def sampling_cycle(f0,
     state_prep : bool
         State preparation flag
     """
-    time_step = T_s / n_m
+    time_step = T_c / n_m
     if laser_drift == 0.:
         detunings = np.multiply(np.ones(n_m), f0) + theoretical_delta
     else:
@@ -111,5 +111,5 @@ def sampling_cycle(f0,
     measured_results = binom.rvs(n=1, p=jump_probabilities)
     p_X = np.sum(measured_results, axis=0) / n_m
     center_f = detunings[-1] - theoretical_delta
-    total_drift = f0 + n_m * laser_drift * time_step
+    total_drift = f0 + T_c * laser_drift
     return p_X, center_f, total_drift
