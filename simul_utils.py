@@ -47,7 +47,7 @@ def k_p(delta, t, n=1000, state_prep=False, center=0.):
     p_B = lineshape(d_B, t, state_prep, center)
     k = p_B - p_R
     d_k = np.diff(k) / (d_C[1] - d_C[0])
-    origin = d_k[np.argmin(np.abs(d_C))]
+    origin = d_k[np.argmin(np.abs(d_C-center))]
     return origin, k, d_C
 
 
@@ -61,10 +61,11 @@ def allan_deviation(p_X, kp, eta0, T_c, tau):
 def sampled_lineshape(lineshape_func,
                       delta,
                       tau_pi=6e-3,
+                      linecenter=0.,
                       state_prep=False,
                       samples_per_point=100):
     # quantum jump p from theory
-    jump_probabilities = lineshape_func(delta, tau_pi, state_prep)
+    jump_probabilities = lineshape_func(delta, tau_pi, state_prep, linecenter)
     # draws from binomial
     measured_results = binom.rvs(n=samples_per_point, p=jump_probabilities)
     sample_shape = measured_results / samples_per_point
@@ -75,6 +76,7 @@ def sampling_cycle(f0,
                    T_s,
                    n_m,
                    theoretical_delta,
+                   linecenter=0.,
                    tau_pi=6e-3,
                    laser_drift=20e-6,
                    state_prep=False):
@@ -106,7 +108,7 @@ def sampling_cycle(f0,
                                 num=n_m)
         detunings += theoretical_delta
     # quantum jump p from theory
-    jump_probabilities = lineshape(detunings, tau_pi, state_prep)
+    jump_probabilities = lineshape(detunings, tau_pi, state_prep, linecenter)
     # draws from binomial
     measured_results = binom.rvs(n=1, p=jump_probabilities)
     p_X = np.sum(measured_results, axis=0) / n_m
