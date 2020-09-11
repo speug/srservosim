@@ -249,22 +249,22 @@ def run_BC_simulation(t,
         # sample probabilities. Laser drifts only once per pair as two sites
         # are sampled simultaneously (is this a problem?)
         p_mB, f_cavity, delta_cavity = sampling_cycle(f_cavity, T_s, n_s,
-                                                      eta_C[i-1]-eta_B[i-1]+fwhms[0]/2.,
+                                                      eta_C[i-1]-eta_B[i-1]+FWHMS[0]/2.,
                                                       linecenter=-z_s,
                                                       tau_pi=tau_pi,
                                                       laser_drift=0.)
         p_pR, f_cavity, delta_cavity = sampling_cycle(f_cavity, T_s, n_s,
-                                                      eta_C[i-1]+eta_B[i-1]-fwhms[1]/2.,
+                                                      eta_C[i-1]+eta_B[i-1]-FWHMS[1]/2.,
                                                       linecenter=z_s,
                                                       tau_pi=tau_pi,
                                                       laser_drift=laser_drift)
         p_pB, f_cavity, delta_cavity = sampling_cycle(f_cavity, T_s, n_s,
-                                                      eta_C[i-1]+eta_B[i-1]+fwhms[1]/2.,
+                                                      eta_C[i-1]+eta_B[i-1]+FWHMS[1]/2.,
                                                       linecenter=z_s,
                                                       tau_pi=tau_pi,
                                                       laser_drift=0.)
         p_mR, f_cavity, delta_cavity = sampling_cycle(f_cavity, T_s, n_s,
-                                                      eta_C[i-1]-eta_B[i-1]-fwhms[0]/2.,
+                                                      eta_C[i-1]-eta_B[i-1]-FWHMS[0]/2.,
                                                       linecenter=-z_s,
                                                       tau_pi=tau_pi,
                                                       laser_drift=laser_drift)
