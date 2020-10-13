@@ -5,3 +5,8 @@ data/*
 colorednoise/*
 __pycache__/*
 figs/*
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.synctex.gz

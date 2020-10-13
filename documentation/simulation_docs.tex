@@ -1,0 +1,85 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{epstopdf}
+\usepackage{gensymb}
+\usepackage{subcaption}
+\usepackage{color}			
+\usepackage{listings}
+\usepackage{setspace}
+\usepackage{amssymb}
+\usepackage{epstopdf}
+\usepackage{enumitem}
+\usepackage[parfill]{parskip}
+
+\newcommand{\sr}{$^{88}$Sr$^+$}
+%partial derivative
+\newcommand{\pd}[2]{\frac{\partial #1}{\partial #2}}
+%bra-ket notation
+\newcommand{\bra}[1]{\left\langle #1 \right|}
+\newcommand{\ket}[1]{\left| #1 \right\rangle}
+\newcommand{\braket}[2]{\left\langle #1 \big| #2 \right\rangle}
+
+%upright subscripts
+\begingroup\lccode`~=`!
+\lowercase{\endgroup\def~}#1{_{\mathrm{#1}}}
+\mathchardef\exclam=\mathcode`!
+\AtBeginDocument{\mathcode`!=\string"8000 }
+
+%uprigth mu (or any greek letter)
+\usepackage{xspace}
+\def\mum{\ensuremath{\upmu \mathrm{m} \xspace}}
+%\usepackage[]{mcode}
+%\lstset{
+%	literate = {ö}{{\"o}}1
+%			{ä}{{\"a}}1
+%			{€}{{\euro}}1
+%} 
+\title{Servo algorithm simulation for \sr ion clock}
+\begin{document}
+\maketitle
+
+\section{Basic outline}
+
+The aim of this document is to describe the servo simulator for a \sr ion clock.
+The clock functions by matching a laser to a narrow transition of an \sr ion 
+as accurately as possible.
+
+We simulate the probing of a two-state system with a Rabi $\pi$-pulse.
+The system is assumed to be in the ground state initially, so the probability
+distribution is
+\begin{equation}
+    \rho_{ee}(f, \omega_0, \tau, S) = S \left( \frac{\pi}{2} \right)^2 \textrm{sinc}^2 
+    \left( \frac{\sqrt{\pi^2 + (f-\omega_0)^2 \tau^2}}{2} \right) \text{,}
+\end{equation}
+where $f$ is the laser wavelength, $\omega_0$ the linecenter of the distribution,
+$\tau$ the length of the $\pi$-pulse and $S$ the state prep factor.
+If the ion is state-prepared i.e. we ensure that the ion is in the ground state
+before the probe pulse, $S=1$; otherwise $S=1/2$.
+
+Key assumptions:
+\begin{itemize}
+    \item The system is always in the ground state before the pulse.
+    To simulate the lack of state preparation, the probability distribution
+    is simply divided by 2.
+    \item All laser pulses are $\pi$-pulses.
+    \item The laser line is an ideal Dirac distribution.
+    Thus, we know exactly where we are probing in the frequency space.
+\end{itemize}
+
+To simulate a clock cycle with laser at frequency $f$, we take the ideal excitation
+probability $\rho_{ee}(f)$ and take $n$ draws from the binomial distribution
+$B(n, \rho_{ee}(f))$.
+This way, we can simulate the random shot noise from a cycle of multiple pulses.
+
+\section{Functions}
+\subsection{Initialization}
+These functions simulate setting the initial settings by sampling the lineshape.
+\subsubsection{}
+
+\section{Example simulation workflow}
+\end{document}

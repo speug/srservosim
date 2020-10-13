@@ -151,7 +151,39 @@ def sample_initial_values(center,
                           N_s=100,
                           p0=None,
                           plot=False):
-    """Set initial linecenter values"""
+    """Approximate the actual linecenter via sampling to get initial
+    simulation values.
+    
+    Parameters
+    ----------
+    center : float
+        The ideal linecenter.
+    tau_pi : float
+        Length of the pi-pulse.
+    sampling : 'adaptive', 'manual'
+        Sampling setting. Adaptive sampling takes 20 equidistant samples
+        within [-2*fourier limit, 2*fourier limit]. Manual sampling
+        samples at points provided by the user.
+    d_sample : list of floats
+        sampling points for manual sampling. Defaults to None.
+    state_prep : boolean
+        State preparation flag. Defaults to False.
+    N_s : int
+        Number of samples per point when sampling the lineshape. Defaults
+        to 100.
+    p0 : [float, float]
+        Initial guess for fitting the lineshape function.
+    plot : boolean
+        Flag for producing debug plots.
+        
+    Returns
+    -------
+    out : dictionary
+        The output dictionary contains the following values:
+        'fit_center':   the linecenter as obtained from the fitted lineshape
+        'fit_tau':      the fit pi-pulse length (width of the lineshape)
+        'fit_FWHM':     FWHM of the fit lineshape
+        'plot':         If plot=True, contains the axes of the plots"""
     if sampling == 'adaptive':
         fourier_limit = 0.8 / tau_pi
         d_sample = np.linspace(center-2.*fourier_limit,
@@ -190,6 +222,7 @@ def sample_initial_values(center,
 
 
 def BC_servo_gains(centers, tau_pis, fwhms):
+    """Calculate servo gains for bichromatic (BC) sampling."""
     # B servo
     eta_B = np.mean(np.abs(centers))
     seps, sep_step = np.linspace(0, 2*eta_B, 10000, retstep=True)
@@ -234,6 +267,7 @@ def run_BC_simulation(t,
                       B_drift=0.,
                       n_s=100):
 
+    """Run a BC simulation."""
     T_s = n_s * 2 * tau_pi
     eta_C = np.zeros(len(t))
     eta_C[0] = initial_vals['LC_servo']
@@ -278,7 +312,7 @@ def run_BC_simulation(t,
         # Control LC servo
         pfb_1 = p_mR+p_pR
         pfb_2 = p_mB+p_pB
-        ps[i,:] = [p_mR, p_mB, p_pR, p_pB, pfb_1, pfb_2]
+        ps[i, :] = [p_mR, p_mB, p_pR, p_pB, pfb_1, pfb_2]
         discriminant_LC = (pfb_2 - pfb_1) / (pfb_2 + pfb_1)
         eta_C[i] = eta_C[i-1] + discriminant_LC * servo_gains[1]
 
