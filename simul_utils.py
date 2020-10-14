@@ -153,7 +153,7 @@ def sample_initial_values(center,
                           plot=False):
     """Approximate the actual linecenter via sampling to get initial
     simulation values.
-    
+
     Parameters
     ----------
     center : float
@@ -247,9 +247,9 @@ def BC_servo_gains(centers, tau_pis, fwhms):
                        center=centers[0])
     pfb_mR = lineshape(centers[1] - fwhms[1]/2. + d, tau_pis[1],
                        center=centers[1])
-    pfb_1 = pfb_mR + pfb_pR
-    pfb_2 = pfb_mB + pfb_pB
-    k_C = pfb_2 - pfb_1
+    pfb_1 = pfb_pB+pfb_mB
+    pfb_2 = pfb_pR+pfb_mR
+    k_C = pfb_1 - pfb_2
     dk_C = np.diff(k_C) / step
     k_p_lc = dk_C[np.argmin(np.abs(d))]
     servo_gains[1] = (-2 * 0.5)/k_p_lc
@@ -310,11 +310,11 @@ def run_BC_simulation(t,
         eta_B[i] = eta_B[i-1] + discriminant_B * servo_gains[0]
 
         # Control LC servo
-        pfb_1 = p_mR+p_pR
-        pfb_2 = p_mB+p_pB
+        pfb_1 = p_pB+p_mB
+        pfb_2 = p_pR+p_mR
         ps[i, :] = [p_mR, p_mB, p_pR, p_pB, pfb_1, pfb_2]
-        discriminant_LC = (pfb_2 - pfb_1) / (pfb_2 + pfb_1)
-        eta_C[i] = eta_C[i-1] + discriminant_LC * servo_gains[1]
+        discriminant_LC = (pfb_1 - pfb_2) / (pfb_1 + pfb_2)
+        eta_C[i] = eta_C[i-1] + discriminant_LC * -servo_gains[1]
 
         eta_cavity[i] = f_cavity
 

@@ -8,7 +8,7 @@
 \usepackage{epstopdf}
 \usepackage{gensymb}
 \usepackage{subcaption}
-\usepackage{color}			
+\usepackage{color}
 \usepackage{listings}
 \usepackage{setspace}
 \usepackage{amssymb}
@@ -76,10 +76,142 @@ probability $\rho_{ee}(f)$ and take $n$ draws from the binomial distribution
 $B(n, \rho_{ee}(f))$.
 This way, we can simulate the random shot noise from a cycle of multiple pulses.
 
-\section{Functions}
-\subsection{Initialization}
-These functions simulate setting the initial settings by sampling the lineshape.
-\subsubsection{}
+In addition to shot noise, the model also includes laser and magnetic field
+drift.
+To complement these drifts, a servo algorithm is included to correct the
+drift.
+\subsection{Servo algorithm}
+
+Naïvely, one would think that we could simply probe the ion at the transition line
+center and attempt to maximize the amount of cycles where the ion is in the clock state.
+However, a problem immediately presents itself: the probability of excitation
+of a two-state system is symmetric as a function of detuning as seen in Fig. \ref{fig:exc_spec}.
+If local oscillator does not maximize the transition probability, should it be 
+tuned toward blue or red?
+Additionally, due to small perturbations in environmental conditions, the laser
+line and Zeeman peaks are constantly drifting and need periodic correction to remain at the reference
+as precisely as possible.
+To solve this problem, the ion is instead probed from both sides of the linecenter
+at the assumed points where the spectrum reaches half maximum.
+By sampling both of these multiple points many times, we can approximate the 
+transition probabilities on the red and blue side, $p_R$ and $p_B$.
+These can then be used to compose an algorithm for counteracting the detuning
+by tuning the laser frequency using a servo \cite{Dube2015a}:
+\begin{align}
+  f_{i+1} &= f_{i} + E \\
+  E &= G\: \frac{p_B - p_R}{p_B + p_R}
+\end{align}
+where $f_i$ is the frequency of the laser at time step $i$, $p_B$ and $p_R$ the 
+blue- and red-detuned transition probabilities and $G$ the gain in Hz.
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{../../thesis/figs/rabi_spec.pdf}
+  \centering
+  \caption{Excitation spectrum of an ideal two state system, along with
+  the blue- and red-detuned sampling without and with offset.}
+  \label{fig:exc_spec}
+\end{figure}
+
+To choose the optimal value for the gain $G$ such that it would always correct
+the detuning in a single step, we must first revisit the definition of Allan
+deviation, given by the square root of Eq. \ref{eq:AVAR}.
+As we cannot directly measure the transition probability of at detuning $\delta$,
+we instead perform many cycles and use the statistics to approximate the probability.
+These measurements follow the binomial distribution, the variance of which is
+$\sigma_{p_X} = p_X(1-p_X)$ where $p_X$ represents either $p_B$ or $p_R$.
+Now we can redefine the Allan deviation as
+\begin{equation}
+  \sigma_y(\tau) = \frac{G}{\nu_0} \sqrt{\left(\frac{1-p_X}{p_X}\right) \frac{T_c}{\tau}}
+  \label{eq:ADEV_gain}
+\end{equation}
+where $\nu_0$ is the transition frequency, $\tau$ the averaging time and $T_c$ the
+cycle time of a single interrogation of the transition.
+To arrive at the optimal $G$ value, we must minimize the residual servo tracking error.
+We define $k_p$ as $k_p \pd{}{\delta} (p_B - p_R) |_{\delta=0}$, which we can numerically
+evaluate by sampling $p_B$ and $p_R$ from the lineshape function.
+Then $G= -2p_X/k_p$ and \eqref{eq:ADEV_gain} becomes
+\begin{equation}
+  \sigma_y(\tau) = \frac{-2 \sigma_{p_X}}{k_p \nu_0} \sqrt{\frac{T_c}{\tau}} \textrm{.}
+\end{equation}
+
+If state preparation is not possible, the average excitation probability at
+the center of the transition line is only 50\%.
+Due to the nature of binomial sampling, this increases the effect of shot noise
+which in turn can cause erroneous servo corrections and technical shifts.
+However, we can exploit the Zeeman effect of \sr ion to bypass this issue to 
+achieve better statistics.
+In bichromatic (BC) sampling a laser pulse at frequency $f_0$ is split in two
+pulses which target different Zeeman peaks of a single Zeeman pair.
+The splitting is done using an acousto-optic modulator.
+Instead of one servo correcting the laser linecenter, we now have two.
+One servo tracks the linear Zeeman splitting, $\Delta \nu_B$ and the other
+tracks the frequency of the center of the peak pair $\Delta \nu_C$.
+For a graphical representation, see Fig. \ref{fig:BC_example}
+
+To control these servos, we interrogate the beaks on the blue and
+red sides, similarly as in the single peak case.
+Now that we have four such points, two for each peaks, we will use $+$ and $-$
+to label which peak we are sampling.
+$+$ corresponds to the peak with $m_J > 0$ and $-$ to the $m_J < 0$ one.
+By splitting the pulse to two different frequencies, we are effectively
+probing the distribution at two points simultaneously.
+Thus, we can sum the transition probabilities of the two probing locations
+to get new distributions with which we can control the servos.
+The error signals associated with the magnetic field $E_B$ and center $E_C$ 
+servos are
+\begin{align}
+  p!{outer} &= p_{R-} + p_{B+} \\
+  p!{inner} &= p_{B-} + p_{R+} \\
+  E_B &= G_B \frac{p!{outer} - p!{inner}}{p!{outer} + p!{inner}} \\
+  p!{BB} &= p_{B-} + p_{B+} \\
+  p!{RR} &= p_{R-} + p_{R+} \\
+  E_C &= G_C \frac{p!{BB} - p!{RR}}{p!{BB} + p!{RR}} 
+\end{align} 
+The benefit of bichromatic sampling lies in the fact that $p!{outer}, p!{inner},
+p!{BB}, p!{RR} \in [0,1]$.
+Thus the error signals are less impacted by the random shot noise.
+The servo gains $G_B$ and $G_C$ are calculated in a similar manner as the gain
+for a single peak servo; only now $p_X$ represents one of the derived probabilities
+and $k_p$ has to be redefined: $k_p = \pd{}{\delta} (p_X - p_Y) |_{\delta=0}$, where
+$p_X$ and $p_Y$ correspond to the probabilities in the numerators of the
+magnetic field and center error signals.
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{../../thesis/figs/BC_sampling_example.pdf}
+  \centering
+  \caption{
+    An example of bichromatic sampling.
+    The two peaks of a Zeeman pair are shown with dashed lines, the red being
+    the $m_J < 0$ and the blue the $m_J > 0$ peak.
+    The crosses show the locations of the ideal sampling points for red- and
+    blue-detuned samples for the servo algorithm.
+    The line with endcaps shows the separation tracked by the magnetic field
+    servo and the dotted line shows the frequency tracked by the center servo.
+  }
+  \label{fig:BC_example}
+\end{figure}
+
+The functions used in the module are self-documented.
 
 \section{Example simulation workflow}
+
+\begin{enumerate}
+    \item The user provides general settings.
+    These may include ambient magnetic field, magnetic field drift, 
+    laser line drift etc.
+    \item Using \texttt{sample\_initial\_values}, the finding and characterizing
+    the transition lineshape is performed.
+    The ideal lineshape is sampled at different points using binomial sampling.
+    Afterwards, a lineshape function is fit to the sampled points using 
+    \texttt{scipy.optimize}'s \texttt{curve\_fit}.
+    \item The main simulation loop.
+    For each main cycle step, the lineshape is probed numerous times to approximate
+    transition probabilities at red and blue detuned points.
+    While sampling, the possibly drifting laser line and magnetic field
+    change values
+    Then, using the gain setting calculated in the initialization stage, the 
+    servos are corrected and the intermediary results saved.
+\end{enumerate}
+\bibliography{X:/BA-Projects/I/ITOC/JabRef/IonClock}
+\bibliographystyle{unsrt}
 \end{document}
