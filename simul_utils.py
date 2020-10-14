@@ -310,11 +310,11 @@ def run_BC_simulation(t,
         eta_B[i] = eta_B[i-1] + discriminant_B * servo_gains[0]
 
         # Control LC servo
-        pfb_1 = p_pB+p_mB
-        pfb_2 = p_pR+p_mR
+        pfb_1 = p_pB + p_mB
+        pfb_2 = p_pR + p_mR
         ps[i, :] = [p_mR, p_mB, p_pR, p_pB, pfb_1, pfb_2]
-        discriminant_LC = (pfb_1 - pfb_2) / (pfb_1 + pfb_2)
-        eta_C[i] = eta_C[i-1] + discriminant_LC * -servo_gains[1]
+        discriminant_LC = np.divide(pfb_1 - pfb_2, pfb_1 + pfb_2)
+        eta_C[i] = eta_C[i-1] + discriminant_LC * servo_gains[1]
 
         eta_cavity[i] = f_cavity
 
