@@ -46,14 +46,16 @@
 \section{Basic outline}
 
 The aim of this document is to describe the servo simulator for a \sr ion clock.
-The clock functions by matching a laser to a narrow transition of an \sr ion 
+The clock functions by tuning a laser to a narrow transition of an \sr ion 
 as accurately as possible.
 
 We simulate the probing of a two-state system with a Rabi $\pi$-pulse.
+Let the ground state be $\ket{g}$ and the excited state $\ket{e}$.
+The transition probability between states is marked with $\rho$.  
 The system is assumed to be in the ground state initially, so the probability
-distribution is
+distribution for finding the system in the excited state after a laser pulse is
 \begin{equation}
-    \rho_{ee}(f, \omega_0, \tau, S) = S \left( \frac{\pi}{2} \right)^2 \textrm{sinc}^2 
+    \rho_{ge}(f, \omega_0, \tau, S) = S \left( \frac{\pi}{2} \right)^2 \textrm{sinc}^2 
     \left( \frac{\sqrt{\pi^2 + (f-\omega_0)^2 \tau^2}}{2} \right) \text{,}
 \end{equation}
 where $f$ is the laser wavelength, $\omega_0$ the linecenter of the distribution,
@@ -127,7 +129,7 @@ Now we can redefine the Allan deviation as
 where $\nu_0$ is the transition frequency, $\tau$ the averaging time and $T_c$ the
 cycle time of a single interrogation of the transition.
 To arrive at the optimal $G$ value, we must minimize the residual servo tracking error.
-We define $k_p$ as $k_p \pd{}{\delta} (p_B - p_R) |_{\delta=0}$, which we can numerically
+We define $k_p$ as $k_p = \pd{}{\delta} (p_B - p_R) |_{\delta=0}$, which we can numerically
 evaluate by sampling $p_B$ and $p_R$ from the lineshape function.
 Then $G= -2p_X/k_p$ and \eqref{eq:ADEV_gain} becomes
 \begin{equation}

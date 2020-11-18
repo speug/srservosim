@@ -36,6 +36,33 @@ def lineshape(delta, t, state_prep=False, center=0.):
     return out
 
 
+def lorentzian_lineshape(delta, tau_pi, state_prep=False, center=0.):
+    """Lorentzian lineshape function.
+
+    Parameters
+    ----------
+    delta : scalar or np.array
+        Detunings for which calculate the lineshape value
+    t : scalar or np.array
+        Pulse length(s)
+    state_prep : bool, optional
+        Flag for whether the ions have been state-prepped, yielding
+        a different resulting max probability. Default: False
+    center : scalar, optional
+        Offset of the central wavelength. Default: 0
+    Returns
+    -------
+    Lineshape array as probabilities for state change as a function
+    of detuning"""
+
+    fwhm = 0.8/tau_pi
+    subsidiary = (delta-center) / (fwhm/2.)
+    lorentzian = 1. / (1. + np.square(subsidiary))
+    state_coeff = 1 if state_prep else 0.5
+    lorentzian *= state_coeff
+    return lorentzian
+
+
 def FWHM(lineshape, delta):
     """Calculate FWMH from data."""
     width = peak_widths(lineshape, [np.argmax(lineshape)], rel_height=0.5)
