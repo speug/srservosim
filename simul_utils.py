@@ -58,8 +58,8 @@ def lorentzian_lineshape(delta, tau_pi, state_prep=False, center=0.):
     fwhm = 0.8/tau_pi
     subsidiary = (delta-center) / (fwhm/2.)
     lorentzian = 1. / (1. + np.square(subsidiary))
-    state_coeff = 1 if state_prep else 0.5
-    lorentzian *= state_coeff
+    if not state_prep:
+        lorentzian /= 2.
     return lorentzian
 
 
@@ -70,14 +70,15 @@ def FWHM(lineshape, delta):
     return out
 
 
-def k_p(delta, t, n=1000, state_prep=False, center=0.):
+def k_p(delta, t, n=1000, state_prep=False, center=0.,
+        lineshape_func=lineshape):
     """"Calculate k_p for optimal gain."""
-    fwhm = FWHM(lineshape(delta, t, state_prep, center), delta)
+    fwhm = FWHM(lineshape_func(delta, t, state_prep, center), delta)
     d_R = np.linspace(start=delta[0], stop=delta[-1] - fwhm, num=n)
     d_B = d_R + fwhm
     d_C = d_R + fwhm / 2.
-    p_R = lineshape(d_R, t, state_prep, center)
-    p_B = lineshape(d_B, t, state_prep, center)
+    p_R = lineshape_func(d_R, t, state_prep, center)
+    p_B = lineshape_func(d_B, t, state_prep, center)
     k = p_B - p_R
     d_k = np.diff(k) / (d_C[1] - d_C[0])
     origin = d_k[np.argmin(np.abs(d_C-center))]
@@ -132,7 +133,8 @@ def sampling_cycle(f0,
                    linecenter=0.,
                    tau_pi=6e-3,
                    laser_drift=20e-6,
-                   state_prep=False):
+                   state_prep=False,
+                   lineshape_func=lineshape):
     """Perform one cycle of sampling from data, including laser cavity
     drift.
     Parameters
@@ -161,7 +163,8 @@ def sampling_cycle(f0,
                                 num=n_m)
         detunings += theoretical_delta
     # quantum jump p from theory
-    jump_probabilities = lineshape(detunings, tau_pi, state_prep, linecenter)
+    jump_probabilities = lineshape_func(detunings,
+                                        tau_pi, state_prep, linecenter)
     # draws from binomial
     measured_results = binom.rvs(n=1, p=jump_probabilities)
     p_X = np.sum(measured_results, axis=0) / n_m
@@ -177,7 +180,8 @@ def sample_initial_values(center,
                           state_prep=False,
                           N_s=100,
                           p0=None,
-                          plot=False):
+                          plot=False,
+                          lineshape_func=lineshape):
     """Approximate the actual linecenter via sampling to get initial
     simulation values.
 
@@ -219,7 +223,7 @@ def sample_initial_values(center,
         raise ValueError('Sampling must be adaptive or manual.' +
                          ' In the latter case, ' +
                          'user must provide the sampling range.')
-    l_sample = sampled_lineshape(lineshape,
+    l_sample = sampled_lineshape(lineshape_func,
                                  d_sample,
                                  tau_pi=tau_pi,
                                  state_prep=state_prep,
@@ -228,10 +232,10 @@ def sample_initial_values(center,
     # fit to sampled to simulate real measurement
     if p0 is None:
         p0 = [tau_pi, center]
-    popt, pcov = curve_fit(lambda d, t, c: lineshape(d, t, False, c), d_sample,
-                           l_sample, p0=p0)
+    popt, pcov = curve_fit(lambda d, t, c: lineshape_func(d, t, False, c),
+                           d_sample, l_sample, p0=p0)
     d = np.linspace(center-1000, center+1000, 10000)
-    fit_shape = lineshape(d, popt[0], state_prep, popt[1])
+    fit_shape = lineshape_func(d, popt[0], state_prep, popt[1])
     # calculate FWHM
     width = peak_widths(fit_shape, [np.argmax(fit_shape)], rel_height=0.5)
     fwhm = d[int(width[3][0])] - d[int(width[2][0])]
@@ -248,15 +252,15 @@ def sample_initial_values(center,
     return out
 
 
-def BC_servo_gains(centers, tau_pis, fwhms):
+def BC_servo_gains(centers, tau_pis, fwhms, lineshape_func=lineshape):
     """Calculate servo gains for bichromatic (BC) sampling."""
     # B servo
     eta_B = np.mean(np.abs(centers))
     seps, sep_step = np.linspace(0, 2*eta_B, 10000, retstep=True)
-    pB_pB = lineshape(fwhms[1]/2.+seps, tau_pis[1], center=centers[1])
-    pB_mB = lineshape(fwhms[0]/2.-seps, tau_pis[0], center=centers[0])
-    pB_pR = lineshape(-fwhms[1]/2.+seps, tau_pis[1], center=centers[1])
-    pB_mR = lineshape(-fwhms[0]/2.-seps, tau_pis[0], center=centers[0])
+    pB_pB = lineshape_func(fwhms[1]/2.+seps, tau_pis[1], center=centers[1])
+    pB_mB = lineshape_func(fwhms[0]/2.-seps, tau_pis[0], center=centers[0])
+    pB_pR = lineshape_func(-fwhms[1]/2.+seps, tau_pis[1], center=centers[1])
+    pB_mR = lineshape_func(-fwhms[0]/2.-seps, tau_pis[0], center=centers[0])
     p_sep1 = pB_pB + pB_mR
     p_sep2 = pB_mB + pB_pR
     k_B = p_sep1 - p_sep2
@@ -266,14 +270,14 @@ def BC_servo_gains(centers, tau_pis, fwhms):
     servo_gains[0] = -2 * 0.5/k_pB
     # set up LC servo
     d, step = np.linspace(-2*eta_B, 2*eta_B, 10000, retstep=True)
-    pfb_pB = lineshape(centers[0] + fwhms[0]/2. + d, tau_pis[0],
-                       center=centers[0])
-    pfb_mB = lineshape(centers[1] + fwhms[1]/2. + d, tau_pis[1],
-                       center=centers[1])
-    pfb_pR = lineshape(centers[0] - fwhms[0]/2. + d, tau_pis[0],
-                       center=centers[0])
-    pfb_mR = lineshape(centers[1] - fwhms[1]/2. + d, tau_pis[1],
-                       center=centers[1])
+    pfb_pB = lineshape_func(centers[0] + fwhms[0]/2. + d, tau_pis[0],
+                            center=centers[0])
+    pfb_mB = lineshape_func(centers[1] + fwhms[1]/2. + d, tau_pis[1],
+                            center=centers[1])
+    pfb_pR = lineshape_func(centers[0] - fwhms[0]/2. + d, tau_pis[0],
+                            center=centers[0])
+    pfb_mR = lineshape_func(centers[1] - fwhms[1]/2. + d, tau_pis[1],
+                            center=centers[1])
     pfb_1 = pfb_pB+pfb_mB
     pfb_2 = pfb_pR+pfb_mR
     k_C = pfb_1 - pfb_2
@@ -292,7 +296,8 @@ def run_BC_simulation(t,
                       initial_vals,
                       laser_drift=0.,
                       B_drift=0.,
-                      n_s=100):
+                      n_s=100,
+                      lineshape_func=lineshape):
 
     """Run a BC simulation."""
     T_s = n_s * 2 * tau_pi
@@ -313,22 +318,26 @@ def run_BC_simulation(t,
                                                       eta_C[i-1]-eta_B[i-1]+FWHMS[0]/2.,
                                                       linecenter=-z_s,
                                                       tau_pi=tau_pi,
-                                                      laser_drift=0.)
+                                                      laser_drift=0.,
+                                                      lineshape_func=lineshape_func)
         p_pR, f_cavity, delta_cavity = sampling_cycle(f_cavity, T_s, n_s,
                                                       eta_C[i-1]+eta_B[i-1]-FWHMS[1]/2.,
                                                       linecenter=z_s,
                                                       tau_pi=tau_pi,
-                                                      laser_drift=laser_drift)
+                                                      laser_drift=laser_drift,
+                                                      lineshape_func=lineshape_func)
         p_pB, f_cavity, delta_cavity = sampling_cycle(f_cavity, T_s, n_s,
                                                       eta_C[i-1]+eta_B[i-1]+FWHMS[1]/2.,
                                                       linecenter=z_s,
                                                       tau_pi=tau_pi,
-                                                      laser_drift=0.)
+                                                      laser_drift=0.,
+                                                      lineshape_func=lineshape_func)
         p_mR, f_cavity, delta_cavity = sampling_cycle(f_cavity, T_s, n_s,
                                                       eta_C[i-1]-eta_B[i-1]-FWHMS[0]/2.,
                                                       linecenter=-z_s,
                                                       tau_pi=tau_pi,
-                                                      laser_drift=laser_drift)
+                                                      laser_drift=laser_drift,
+                                                      lineshape_func=lineshape_func)
 
         # Control B servo
         p_sep1 = p_pB + p_mR
